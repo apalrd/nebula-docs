@@ -17,9 +17,6 @@ demand.
 This guide assumes you already have a working Lighthouse and at least one other host communicating with it. If you
 haven't setup a Nebula network yet, check out the [Quick Start guide](/docs/guides/quick-start/).
 
-You'll then want to set up the lighthouse as a DNS server for the other two hosts. This can be either the public static
-lighthouse IP or the private nebula IP depending on the Lighthouse's configuration.
-
 ## Configuration
 
 First, spin up a lighthouse and 2 hosts. Then add
@@ -67,7 +64,8 @@ dig @100.100.0.1 +short alice-laptop A
 ```
 
 I can also query the TXT record for the nebula IP for certificate info. Each piece of info is delivered within quotes
-and as a `"Key: Value"` format.
+and as a `"Key: Value"` format. Queries for nebula certificate info are only returned via the Nebula network, 
+so you cannot query this information via the public IP of the lighthouse!
 
 ```bash
 dig @100.100.0.1 +short "100.100.0.2" TXT
@@ -83,6 +81,25 @@ you may choose to configure the system resolver.)
 curl --dns-servers "100.100.0.1" http://alice-laptop:3000
 <div>hello i am a website</div>
 ```
+
+## Zone Delegation
+
+If your client names are fully-qualified domain names and under a domain which you control, you can delegate authoritative DNS 
+of that zone to the Nebula lighthouse. With this setup, clients can use any domain name server they wish and names will resolve
+using normal public DNS servers. However, only nodes within the nebula network will be able to connect to the services, as the 
+addresses are still within the private nebula network. 
+
+For example, the domain `nebula.example.net` could be used for the Nebula hosts. The `example.net` zone would add an NS
+record `nebula` pointing to the public domain name of the Nebula lighthouse(s). The host `alice-laptop.nebula.example.net` could
+then be resolved by any host on the public internet.
+
+If you do not wish to delegate a domain, you can also configure your clients to query the public or nebula
+IP of the lighthouse(s), or configure the resolver on your network to forward queries for the nebula domain to the lighthouse.
+Please note that the lightouse will not return results for any hostname which is not part of the nebula
+network and will not forward queries to other DNS servers, so hosts will still need another DNS server to resolve public 
+addresses. Please be are that currently Nebula does not return nxdomain if the query fails, which may confuse the system 
+stub resolver on some operating systems. [slackhq/nebula/issues/831](https://github.com/slackhq/nebula/issues/841) is 
+tracking this issue.
 
 ## Limitations
 
